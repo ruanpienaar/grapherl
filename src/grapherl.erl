@@ -37,6 +37,7 @@
 -export([applications/3]).
 -export([modules/2]).
 -export([modules/3]).
+-export([modules_dirs/3]).
 
 -ifdef(TEST).
 -include("grapherl_tests.hrl").
@@ -131,7 +132,7 @@ applications(Dir, Target, Options) ->
 %% @equiv application(App, Target, [{type, png}])
 modules(Dir, Target) ->
     modules(Dir, Target, []).
-
+    
 %% @doc Generate a module dependency graph for an application.
 %%
 %% `Dir' is the directory of the application. `Target' is the target
@@ -142,12 +143,16 @@ modules(Dir, Target) ->
 %% set to true or just included as an atom, use the `Dir' directory as
 %% a direct source for .beam files.
 modules(Dir, Target, Options) ->
+    modules_dirs([Dir], Target, Options).
+    
+modules_dirs(Dirs, Target, Options) ->
     %% TODO: Thickness of arrows could be number of calls?
     check_dot(),
     try
         initialize_xref(?MODULE, Options),
-        Path = get_path(Dir),
-        ok(xref:add_directory(?MODULE, Path)),
+        lists:foreach(fun(Dir) ->
+            ok(xref:add_directory(?MODULE, get_path(Dir)))
+        end, Dirs),
         Modules = case ok(xref:q(?MODULE, "AM")) of
                       [] -> throw({error, no_modules_found});
                       Else  -> Else
@@ -166,7 +171,7 @@ modules(Dir, Target, Options) ->
             stop_xref(?MODULE),
             Error
     end.
-
+    
 %%==============================================================================
 %% Internal Functions
 %%==============================================================================
